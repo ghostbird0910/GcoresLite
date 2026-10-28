@@ -1,0 +1,82 @@
+<Window x:Class="GcoresLite.Views.TinyPlayerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="机核播客"
+        Width="76" Height="76"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        AllowsTransparency="True"
+        Background="Transparent"
+        FontFamily="{StaticResource UiFont}"
+        UseLayoutRounding="True"
+        MouseLeftButtonDown="Root_MouseLeftButtonDown"
+        MouseMove="Root_MouseMove"
+        MouseLeftButtonUp="Root_MouseLeftButtonUp">
+
+    <Border CornerRadius="18" ClipToBounds="True" Background="{DynamicResource PrimaryBrush}"
+            BorderBrush="{DynamicResource TileBorderBrush}" BorderThickness="1">
+        <Grid>
+            <!-- 没封面时的底：橙底 + 音符。悬停时淡出，避免和播放图标叠在一起 -->
+            <TextBlock Text="♪" FontSize="28" Foreground="#CCFFFFFF"
+                       HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Opacity" Value="1" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Value="True">
+                                <Setter Property="Opacity" Value="0" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <!-- 封面撑满，用 alpha 蒙版取得平滑的圆角方形轮廓
+                 内容区是 76 - 2×边框 = 74，圆角相应 18 - 1 = 17 -->
+            <Image Source="{Binding Cover}" Stretch="UniformToFill"
+                   RenderOptions.BitmapScalingMode="HighQuality">
+                <Image.OpacityMask>
+                    <VisualBrush>
+                        <VisualBrush.Visual>
+                            <Rectangle Width="74" Height="74"
+                                       RadiusX="17" RadiusY="17" Fill="Black" />
+                        </VisualBrush.Visual>
+                    </VisualBrush>
+                </Image.OpacityMask>
+            </Image>
+
+            <!-- 悬停遮罩必须自己带圆角：外层 Border 的 ClipToBounds 不会裁圆角，
+                 矩形遮罩会把四角也盖住，露出灰方块 -->
+            <Border Background="{DynamicResource OverlayMaskBrush}" CornerRadius="17">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Opacity" Value="0" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Value="True">
+                                <Setter Property="Opacity" Value="1" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <TextBlock Foreground="White" FontSize="24"
+                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="▶" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                    <Setter Property="Text" Value="❚❚" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

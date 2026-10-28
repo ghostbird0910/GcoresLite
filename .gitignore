@@ -1,0 +1,23 @@
+# 构建产物
+bin/
+obj/
+publish/
+publish-single/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# 系统与临时文件
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+*.tmp
+
+# 本地发布脚本产物
+dist/
+tools/

@@ -1,0 +1,983 @@
+<Window x:Class="GcoresLite.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="机核播客"
+        Width="380" Height="620"
+        MinWidth="380" MinHeight="620"
+        WindowStyle="None"
+        ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BgBrush}"
+        FontFamily="{StaticResource UiFont}"
+        FontSize="12"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            ResizeBorderThickness="0"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- ========== 滚动条 ========== -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Width="6" Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Width="5" Margin="0,2" CornerRadius="2.5"
+                                                        Background="{DynamicResource ScrollThumbBrush}" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Height" Value="6" />
+                    <Setter Property="Width" Value="Auto" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ========== 标题栏按钮 ========== -->
+        <Style x:Key="TitleIconButton" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== 分类标签 ========== -->
+        <Style x:Key="TabButtonBase" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,1,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== 节目列表项模板 ========== -->
+        <DataTemplate x:Key="RadioItemTemplate">
+            <Grid Height="52" ToolTip="{Binding ToolTipText}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="44" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Width="44" Height="44" CornerRadius="10" VerticalAlignment="Center">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CoverImage}" Value="{x:Null}">
+                                    <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Image Source="{Binding CoverImage}" Stretch="UniformToFill"
+                           RenderOptions.BitmapScalingMode="HighQuality">
+                        <Image.OpacityMask>
+                            <VisualBrush>
+                                <VisualBrush.Visual>
+                                    <Rectangle Width="44" Height="44"
+                                               RadiusX="10" RadiusY="10" Fill="Black" />
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Image.OpacityMask>
+                    </Image>
+                </Border>
+
+                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontSize="12.5" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <Border Background="{DynamicResource BadgeBgBrush}" CornerRadius="3" Padding="4,1" Margin="0,0,5,0"
+                                Visibility="{Binding IsPrivilege, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="会员" FontSize="9" Foreground="{DynamicResource BadgeFgBrush}" />
+                        </Border>
+                        <TextBlock Text="{Binding MetaText}" FontSize="10.5"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="RadioItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="加入播单…"
+                                  Command="{Binding PlacementTarget.Tag.AddToPlaylistCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext,
+                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="9"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PlaylistItemStyle" TargetType="ListBoxItem" BasedOn="{StaticResource RadioItemStyle}">
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="从播单移除"
+                                  Command="{Binding PlacementTarget.Tag.RemoveFromPlaylistCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext,
+                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== 进度条 ========== -->
+        <Style x:Key="SeekSlider" TargetType="Slider">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsMoveToPointEnabled" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="16" Background="Transparent">
+                            <Border Height="3" CornerRadius="2" Background="{DynamicResource TrackBrush}" VerticalAlignment="Center" />
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="3" CornerRadius="2"
+                                                        Background="{DynamicResource PrimaryBrush}"
+                                                        VerticalAlignment="Center" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="3" Background="Transparent"
+                                                        VerticalAlignment="Center" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="11" Height="11">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Width="11" Height="11"
+                                                         Fill="{DynamicResource PrimaryBrush}" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== 按钮 ========== -->
+        <Style x:Key="PlayerButton" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PlayButton" TargetType="Button">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextInverseBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource PrimaryDarkBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GhostButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource PrimarySoftBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="InputBox" TargetType="TextBox">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== 播单卡片模板 ========== -->
+        <DataTemplate x:Key="PlaylistTemplate">
+            <Grid Height="50">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}" FontSize="12.5"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding ItemCountText}" FontSize="10.5" Margin="0,3,0,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1" Text="›" FontSize="16" VerticalAlignment="Center"
+                           Margin="0,0,4,0" Foreground="{DynamicResource TextTertiaryBrush}" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- ========== 机核播单卡片 ========== -->
+        <DataTemplate x:Key="AlbumItemTemplate">
+            <Grid Height="62">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Width="48" Height="48" CornerRadius="10" VerticalAlignment="Center">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CoverImage}" Value="{x:Null}">
+                                    <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Image Source="{Binding CoverImage}" Stretch="UniformToFill"
+                           RenderOptions.BitmapScalingMode="HighQuality">
+                        <Image.OpacityMask>
+                            <VisualBrush>
+                                <VisualBrush.Visual>
+                                    <Rectangle Width="48" Height="48" RadiusX="10" RadiusY="10" Fill="Black" />
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Image.OpacityMask>
+                    </Image>
+                </Border>
+
+                <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontSize="12.5"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding MetaText}" FontSize="10.5" Margin="0,4,0,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="AlbumItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="9"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PlaylistCardStyle" TargetType="ListBoxItem" BasedOn="{StaticResource RadioItemStyle}">
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="删除这个播单"
+                                  Command="{Binding PlacementTarget.Tag.DeletePlaylistCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext,
+                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- 圆角交给 DWM 裁（8px 与 Win11 系统圆角一致），这里的 CornerRadius 只负责边框线跟着圆角走 -->
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38" />
+                <RowDefinition Height="42" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="112" />
+            </Grid.RowDefinitions>
+
+            <!-- ===== 标题栏 ===== -->
+            <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Ellipse Width="7" Height="7" Fill="{DynamicResource PrimaryBrush}" Margin="0,0,7,0" />
+                    <TextBlock Text="机核播客" FontWeight="SemiBold" FontSize="12.5"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Margin="0,0,8,0">
+                    <!-- 深浅色：浅色时显示月亮（点了变深色），深色时显示太阳 -->
+                    <Button Style="{StaticResource TitleIconButton}"
+                            Command="{Binding ToggleThemeCommand}" ToolTip="切换深浅色">
+                        <Grid Width="13" Height="13">
+                            <Path Data="M 21,12.8 A 9,9 0 1,1 11.2,3 A 7,7 0 0,0 21,12.8 Z"
+                                  Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.7"
+                                  StrokeLineJoin="Round" Stretch="Uniform">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <Path Data="M 12,7.6 A 4.4,4.4 0 1,1 12,16.4 A 4.4,4.4 0 1,1 12,7.6 Z M 12,1.6 V 3.6 M 12,20.4 V 22.4 M 1.6,12 H 3.6 M 20.4,12 H 22.4 M 4.5,4.5 L 6,6 M 18,18 L 19.5,19.5 M 19.5,4.5 L 18,6 M 6,18 L 4.5,19.5"
+                                  Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Stretch="Uniform">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                        </Grid>
+                    </Button>
+                    <Button Style="{StaticResource TitleIconButton}" Content="▭" FontSize="11"
+                            Click="Mini_Click" ToolTip="迷你模式" />
+                    <Button Style="{StaticResource TitleIconButton}" Content="—"
+                            Click="Minimize_Click" ToolTip="最小化" />
+                    <Button Style="{StaticResource TitleIconButton}" Content="✕" FontSize="11"
+                            Click="Close_Click" ToolTip="关闭" />
+                </StackPanel>
+            </Grid>
+
+            <!-- ===== 分类标签 ===== -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                <Button Content="最新" Command="{Binding SelectTabCommand}" CommandParameter="latest">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource TabButtonBase}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="latest">
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="机核自制" Command="{Binding SelectTabCommand}" CommandParameter="gcores">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource TabButtonBase}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="gcores">
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="入驻播客" Command="{Binding SelectTabCommand}" CommandParameter="podcast">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource TabButtonBase}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="podcast">
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="播单" Command="{Binding SelectTabCommand}" CommandParameter="playlists">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource TabButtonBase}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="playlists">
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="电台" Command="{Binding SelectTabCommand}" CommandParameter="radio">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource TabButtonBase}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="radio">
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+
+            <!-- ===== 内容区 ===== -->
+            <Grid Grid.Row="2">
+
+                <!-- A. 节目列表 -->
+                <Grid Visibility="{Binding ShowRadioList, Converter={StaticResource BoolToVis}}">
+                    <ListBox x:Name="RadioList"
+                             ItemsSource="{Binding Items}"
+                             ItemTemplate="{StaticResource RadioItemTemplate}"
+                             ItemContainerStyle="{StaticResource RadioItemStyle}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0,2,0,8"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             VirtualizingPanel.ScrollUnit="Pixel"
+                             ScrollViewer.ScrollChanged="RadioList_ScrollChanged"
+                             SelectionChanged="RadioList_SelectionChanged" />
+
+                    <TextBlock Text="{Binding StatusText}" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                               Margin="0,0,0,6" FontSize="10.5" IsHitTestVisible="False"
+                               Padding="8,2" Background="{DynamicResource BgBrush}"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                </Grid>
+
+                <!-- B. 播单列表 -->
+                <Grid Visibility="{Binding ShowPlaylists, Converter={StaticResource BoolToVis}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- 二级切换：我的播单 / 机核播单 -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,6,10,2">
+                        <Button Content="我的播单" Command="{Binding ShowMyPlaylistsCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowPlaylists}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                            <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="机核播单" Command="{Binding ShowGcoresAlbumsCommand}" Margin="6,0,0,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowAlbumList}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                            <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Playlists.Playlists}"
+                             ItemTemplate="{StaticResource PlaylistTemplate}"
+                             ItemContainerStyle="{StaticResource PlaylistCardStyle}"
+                             Background="Transparent" BorderThickness="0" Padding="0,4"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             SelectionChanged="PlaylistList_SelectionChanged" />
+
+                    <Grid Grid.Row="2" Margin="10,6,10,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Style="{StaticResource InputBox}"
+                                 Text="{Binding NewPlaylistName, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="NewPlaylist_KeyDown" />
+                        <Button Grid.Column="1" Margin="6,0,0,0" Style="{StaticResource GhostButton}"
+                                Content="新建播单" Command="{Binding CreatePlaylistCommand}" />
+                    </Grid>
+                </Grid>
+
+                <!-- C. 播单详情 -->
+                <Grid Visibility="{Binding ShowPlaylistDetail, Converter={StaticResource BoolToVis}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="38" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="8,0,10,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource TitleIconButton}" Content="‹" FontSize="16"
+                                    Command="{Binding ClosePlaylistCommand}" ToolTip="返回播单列表" />
+                            <TextBlock Text="{Binding ActivePlaylist.Name}" FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" Margin="2,0,0,0"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                        </StackPanel>
+
+                        <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Style="{StaticResource GhostButton}" Content="播放全部"
+                                Command="{Binding PlayPlaylistCommand}" />
+                    </Grid>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding PlaylistItems}"
+                             ItemTemplate="{StaticResource RadioItemTemplate}"
+                             ItemContainerStyle="{StaticResource PlaylistItemStyle}"
+                             Background="Transparent" BorderThickness="0" Padding="0,2,0,8"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             SelectionChanged="PlaylistItems_SelectionChanged" />
+                </Grid>
+
+                <!-- E. 机核播单列表 -->
+                <Grid Visibility="{Binding ShowAlbumList, Converter={StaticResource BoolToVis}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,6,10,2">
+                        <Button Content="我的播单" Command="{Binding ShowMyPlaylistsCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowPlaylists}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                            <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="机核播单" Margin="6,0,0,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowAlbumList}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                            <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+
+                    <ListBox Grid.Row="1" x:Name="AlbumList"
+                             ItemsSource="{Binding Albums}"
+                             ItemTemplate="{StaticResource AlbumItemTemplate}"
+                             ItemContainerStyle="{StaticResource AlbumItemStyle}"
+                             Background="Transparent" BorderThickness="0" Padding="0,2,0,8"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             VirtualizingPanel.ScrollUnit="Pixel"
+                             ScrollViewer.ScrollChanged="AlbumList_ScrollChanged"
+                             SelectionChanged="AlbumList_SelectionChanged" />
+
+                    <TextBlock Grid.Row="1" Text="{Binding StatusText}" VerticalAlignment="Bottom"
+                               HorizontalAlignment="Center" Margin="0,0,0,6" FontSize="10.5"
+                               IsHitTestVisible="False" Padding="8,2"
+                               Background="{DynamicResource BgBrush}"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                </Grid>
+
+                <!-- F. 机核播单详情 -->
+                <Grid Visibility="{Binding ShowAlbumDetail, Converter={StaticResource BoolToVis}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="38" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="8,0,10,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource TitleIconButton}" Content="‹" FontSize="16"
+                                    Command="{Binding CloseAlbumCommand}" ToolTip="返回播单" />
+                            <TextBlock Text="{Binding ActiveAlbum.Title}" FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" Margin="2,0,0,0"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="150" />
+                        </StackPanel>
+
+                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                            <Button Style="{StaticResource GhostButton}" Content="整张加入"
+                                    Command="{Binding AddAlbumToPlaylistCommand}"
+                                    ToolTip="把这张播单里可播放的节目整批加入我的播单" />
+                            <Button Style="{StaticResource GhostButton}" Content="播放全部" Margin="6,0,0,0"
+                                    Command="{Binding PlayAlbumCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding AlbumRadios}"
+                             ItemTemplate="{StaticResource RadioItemTemplate}"
+                             ItemContainerStyle="{StaticResource RadioItemStyle}"
+                             Background="Transparent" BorderThickness="0" Padding="0,2,0,8"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             SelectionChanged="AlbumRadios_SelectionChanged" />
+                </Grid>
+
+                <!-- D. 电台 -->
+                <Grid Visibility="{Binding ShowRadioView, Converter={StaticResource BoolToVis}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="260">
+                        <Border Width="128" Height="128" CornerRadius="18" ClipToBounds="True"
+                                HorizontalAlignment="Center"
+                                Background="{DynamicResource PrimarySoftBrush}">
+                            <Grid>
+                                <TextBlock Text="📻" FontSize="40" HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                <Image Source="{Binding Playback.Cover}" Stretch="UniformToFill" />
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="随机电台" FontSize="14" FontWeight="SemiBold" Margin="0,16,0,0"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                        <TextBlock Text="{Binding Playback.RadioHint}" FontSize="11" Margin="0,8,0,0"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+
+                        <TextBlock Text="{Binding Playback.Title}" FontSize="12" Margin="0,14,0,0"
+                                   HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   MaxWidth="240" Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                        <Button Content="换一个台" Margin="0,16,0,0" Padding="16,7"
+                                HorizontalAlignment="Center" Style="{StaticResource GhostButton}"
+                                Command="{Binding Playback.ReshuffleRadioCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- ===== 播放条 ===== -->
+            <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0">
+                <Grid Margin="12,8" DataContext="{Binding Playback}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Width="40" Height="40" CornerRadius="10">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Cover}" Value="{x:Null}">
+                                            <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <TextBlock Text="♪" FontSize="16" Foreground="{DynamicResource PrimaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Image Source="{Binding Cover}" Stretch="UniformToFill"
+                                       RenderOptions.BitmapScalingMode="HighQuality">
+                                    <Image.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Rectangle Width="40" Height="40"
+                                                           RadiusX="10" RadiusY="10" Fill="Black" />
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Image.OpacityMask>
+                                </Image>
+                            </Grid>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" FontSize="12"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Subtitle}" FontSize="10.5" Margin="0,2,0,0"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="{Binding PositionText}" FontSize="10" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   FontFamily="Consolas, Microsoft YaHei UI" />
+
+                        <Slider x:Name="SeekBar" Grid.Column="1" Margin="8,0"
+                                Style="{StaticResource SeekSlider}"
+                                Minimum="0" Maximum="{Binding DurationSeconds}"
+                                Value="{Binding SeekSeconds, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Column="2" Text="{Binding DurationText}" FontSize="10"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   FontFamily="Consolas, Microsoft YaHei UI" />
+                    </Grid>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom" Margin="0,2,0,0">
+                        <Button Style="{StaticResource PlayerButton}" Content="⏮"
+                                Command="{Binding PreviousCommand}" ToolTip="上一首" />
+                        <Button Style="{StaticResource PlayerButton}" Content="-15" FontSize="9.5"
+                                Command="{Binding SkipBackCommand}" ToolTip="后退 15 秒" Margin="2,0" />
+                        <Button Margin="6,0" Command="{Binding TogglePlayCommand}" ToolTip="播放 / 暂停">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource PlayButton}">
+                                    <Setter Property="Content" Value="▶" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                            <Setter Property="Content" Value="❚❚" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Style="{StaticResource PlayerButton}" Content="+15" FontSize="9.5"
+                                Command="{Binding SkipForwardCommand}" ToolTip="快进 15 秒" Margin="2,0" />
+                        <Button Style="{StaticResource PlayerButton}" Content="⏭"
+                                Command="{Binding NextCommand}" ToolTip="下一首" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ===== 加入播单浮层 ===== -->
+            <Grid Grid.RowSpan="4" Background="{DynamicResource OverlayMaskBrush}"
+                  Visibility="{Binding ShowPlaylistPicker, Converter={StaticResource BoolToVis}}"
+                  MouseLeftButtonDown="Picker_MouseLeftButtonDown">
+                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Margin="26,0"
+                        VerticalAlignment="Center" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="加入播单" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="{Binding PickerSubtitle}" FontSize="10.5" Margin="0,4,0,10"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+
+                        <ListBox x:Name="PickerList" ItemsSource="{Binding Playlists.Playlists}"
+                                 MaxHeight="200" Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Button HorizontalContentAlignment="Left"
+                                            Style="{StaticResource GhostButton}" Margin="0,2"
+                                            Background="Transparent"
+                                            Command="{Binding DataContext.PickPlaylistCommand,
+                                                              RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}">
+                                        <TextBlock>
+                                            <Run Text="{Binding Name, Mode=OneWay}" />
+                                            <Run Text="{Binding ItemCountText, Mode=OneWay}"
+                                                 Foreground="{DynamicResource TextTertiaryBrush}" FontSize="10" />
+                                        </TextBlock>
+                                    </Button>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Separator Margin="0,8" Background="{DynamicResource DividerBrush}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Style="{StaticResource InputBox}"
+                                     Text="{Binding NewPlaylistName, UpdateSourceTrigger=PropertyChanged}"
+                                     KeyDown="NewPlaylist_KeyDown" />
+                            <Button Grid.Column="1" Margin="6,0,0,0" Style="{StaticResource GhostButton}"
+                                    Content="新建并加入" Command="{Binding CreatePlaylistCommand}" />
+                        </Grid>
+
+                        <Button Content="取消" Margin="0,8,0,0" HorizontalAlignment="Right"
+                                Style="{StaticResource GhostButton}" Background="Transparent"
+                                Command="{Binding ClosePickerCommand}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 深色：暖黑调，和机核橙同一色温，不用纯黑以免发灰 -->
+    <Color x:Key="PrimaryColor">#E8701F</Color>
+    <Color x:Key="PrimaryDarkColor">#C95F17</Color>
+
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{StaticResource PrimaryDarkColor}" />
+    <SolidColorBrush x:Key="PrimarySoftBrush" Color="#3A2A1E" />
+    <SolidColorBrush x:Key="PrimaryTintBrush" Color="#2E231B" />
+
+    <SolidColorBrush x:Key="BgBrush" Color="#17120F" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#211A16" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#352C25" />
+    <SolidColorBrush x:Key="DividerBrush" Color="#2B2420" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F0E9E2" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A79A90" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#746A62" />
+    <SolidColorBrush x:Key="TextInverseBrush" Color="#FFFFFF" />
+
+    <SolidColorBrush x:Key="HoverBrush" Color="#2A211B" />
+    <SolidColorBrush x:Key="PressedBrush" Color="#332821" />
+
+    <SolidColorBrush x:Key="BadgeBgBrush" Color="#3E2E22" />
+    <SolidColorBrush x:Key="BadgeFgBrush" Color="#E0A063" />
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#4A3F38" />
+    <SolidColorBrush x:Key="TrackBrush" Color="#3A302A" />
+    <SolidColorBrush x:Key="OverlayMaskBrush" Color="#99000000" />
+    <SolidColorBrush x:Key="TileBorderBrush" Color="#26FFFFFF" />
+
+    <FontFamily x:Key="UiFont">Microsoft YaHei UI</FontFamily>
+
+</ResourceDictionary>
