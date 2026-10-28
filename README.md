@@ -1,6 +1,7 @@
 # GcoresLite
 
 一个用 WPF + .NET 8 重写的机核播客桌面收听工具，只有一个窄条那么大。
+无需登录、无需账号、不保存任何密码，打开即听。
 
 > **非官方项目。与机核网（gcores.com）没有任何关系，未获其授权或认可。**  
 > 仅调用其官网公开的、未登录状态即可访问的接口，不提供会员内容，不绕过任何付费限制。
@@ -59,7 +60,7 @@ GcoresLite 把这件事拆到最小：**本体 5.6MB，启动 1 秒内出列表�
 需要 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)。
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/ghostbird0910/GcoresLite.git
 cd GcoresLite
 
 dotnet build
