@@ -130,6 +130,16 @@ public partial class MainWindow : Window
             vm.LoadMoreAlbumsCommand.Execute(null);
     }
 
+    /// <summary>播单详情里的节目列表同样要能续翻，否则百期播单只能看到第一页。</summary>
+    private void AlbumRadios_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.ExtentHeight <= 0 || e.ViewportHeight <= 0) return;
+        if (e.VerticalOffset + e.ViewportHeight < e.ExtentHeight - 320) return;
+
+        if (DataContext is MainViewModel vm && vm.LoadMoreAlbumRadiosCommand.CanExecute(null))
+            vm.LoadMoreAlbumRadiosCommand.Execute(null);
+    }
+
     private void NewPlaylist_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter) return;

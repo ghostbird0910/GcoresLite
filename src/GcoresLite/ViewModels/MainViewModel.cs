@@ -381,7 +381,8 @@ public sealed partial class MainViewModel : ObservableObject
             const int pageSize = 50;
             var page = await _api.GetAlbumRadiosAsync(ActiveAlbum.Id, _albumRadioOffset, pageSize).ConfigureAwait(true);
 
-            _albumRadioOffset += pageSize;
+            // 用实际返回条数推进 offset，服务端若少给几条不会跳过
+            _albumRadioOffset += page.Items.Count;
             _albumRadioHasMore = page.Items.Count >= pageSize && (page.Total <= 0 || _albumRadioOffset < page.Total);
 
             foreach (var radio in page.Items.Where(r => r.IsPlayable))

@@ -780,13 +780,16 @@
                         </StackPanel>
                     </Grid>
 
-                    <ListBox Grid.Row="1" ItemsSource="{Binding AlbumRadios}"
+                    <ListBox Grid.Row="1" x:Name="AlbumRadioList"
+                             ItemsSource="{Binding AlbumRadios}"
                              ItemTemplate="{StaticResource RadioItemTemplate}"
                              ItemContainerStyle="{StaticResource RadioItemStyle}"
                              Background="Transparent" BorderThickness="0" Padding="0,2,0,8"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              VirtualizingPanel.IsVirtualizing="True"
                              VirtualizingPanel.VirtualizationMode="Recycling"
+                             VirtualizingPanel.ScrollUnit="Pixel"
+                             ScrollViewer.ScrollChanged="AlbumRadios_ScrollChanged"
                              SelectionChanged="AlbumRadios_SelectionChanged" />
                 </Grid>
 

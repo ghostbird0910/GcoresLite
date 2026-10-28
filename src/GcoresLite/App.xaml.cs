@@ -337,43 +337,81 @@ public partial class App : Application
             });
         }
 
-        // 自检：--albumtest 进机核播单，截列表和详情
+        // 自检：--albumtest [专辑id] 进机核播单，截列表和详情
         if (e.Args.Any(a => a.Equals("--albumtest", StringComparison.OrdinalIgnoreCase)))
         {
             var vmA = services.GetRequiredService<MainViewModel>();
+            var idIndex = Array.FindIndex(e.Args, a => a.Equals("--albumtest", StringComparison.OrdinalIgnoreCase)) + 1;
+            var targetId = e.Args.Length > idIndex && !e.Args[idIndex].StartsWith("--", StringComparison.Ordinal)
+                ? e.Args[idIndex]
+                : null;
+
             _ = Task.Run(async () =>
             {
                 await Task.Delay(2500).ConfigureAwait(false);
 
-                await Dispatcher.InvokeAsync(async () =>
-                    await vmA.ShowGcoresAlbumsCommand.ExecuteAsync(null).ConfigureAwait(true));
-
-                await Task.Delay(3500).ConfigureAwait(false);
-
-                await Dispatcher.InvokeAsync(() =>
+                if (targetId is null)
                 {
-                    try
+                    await Dispatcher.InvokeAsync(() => vmA.ShowGcoresAlbumsCommand.Execute(null));
+                    await Task.Delay(3500).ConfigureAwait(false);
+
+                    await Dispatcher.InvokeAsync(() =>
                     {
-                        CaptureWindow(window, Path.Combine(AppPaths.Root, "album-list.png"));
-                        log.Info($"albumtest 列表 共 {vmA.Albums.Count} 个播单");
-                    }
-                    catch (Exception ex) { log.Warn($"album 列表截图失败：{ex.Message}"); }
-                });
+                        try
+                        {
+                            CaptureWindow(window, Path.Combine(AppPaths.Root, "album-list.png"));
+                            log.Info($"albumtest 列表 共 {vmA.Albums.Count} 个播单");
+                        }
+                        catch (Exception ex) { log.Warn($"album 列表截图失败：{ex.Message}"); }
+                    });
 
-                await Dispatcher.InvokeAsync(() =>
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        if (vmA.Albums.FirstOrDefault() is { } first)
+                            vmA.OpenAlbumCommand.Execute(first);
+                    });
+                }
+                else
                 {
-                    if (vmA.Albums.FirstOrDefault() is { } first)
-                        vmA.OpenAlbumCommand.Execute(first);
-                });
+                    // 指定专辑：直接取详情构造，用来验证百期播单能不能翻完
+                    var api = services.GetRequiredService<GcoresLite.Services.Api.GcoresApiClient>();
+                    var images = services.GetRequiredService<GcoresLite.Services.Cache.ImageCache>();
+
+                    await Dispatcher.InvokeAsync(async () =>
+                    {
+                        var album = await api.GetAlbumAsync(targetId).ConfigureAwait(true);
+                        if (album is null)
+                        {
+                            log.Warn($"albumtest 找不到专辑 {targetId}");
+                            return;
+                        }
+
+                        vmA.OpenAlbumCommand.Execute(new AlbumItemViewModel(album, images));
+                    }).Task.Unwrap();
+                }
 
                 await Task.Delay(3500).ConfigureAwait(false);
+
+                // 模拟用户持续滚到底部，验证 ScrollChanged → 加载 这条链路真的通
+                for (var i = 0; i < 8; i++)
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        if (window.FindName("AlbumRadioList") is System.Windows.Controls.ListBox list
+                            && list.Items.Count > 0)
+                        {
+                            list.ScrollIntoView(list.Items[^1]);
+                        }
+                    });
+                    await Task.Delay(1600).ConfigureAwait(false);
+                }
 
                 await Dispatcher.InvokeAsync(() =>
                 {
                     try
                     {
                         CaptureWindow(window, Path.Combine(AppPaths.Root, "album-detail.png"));
-                        log.Info($"albumtest 详情 {vmA.ActiveAlbum?.Title} 共 {vmA.AlbumRadios.Count} 期");
+                        log.Info($"albumtest 详情 {vmA.ActiveAlbum?.Title} 共 {vmA.AlbumRadios.Count} 期 / 声明 {vmA.ActiveAlbum?.RadioCount} 期 / {vmA.StatusText}");
                     }
                     catch (Exception ex) { log.Warn($"album 详情截图失败：{ex.Message}"); }
                 });
