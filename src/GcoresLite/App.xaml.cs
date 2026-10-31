@@ -205,6 +205,7 @@ public partial class App : Application
                     catch (Exception ex)
                     {
                         // 诊断图失败不影响主流程
+                        log.Warn($"alpha 对比图生成失败：{ex.Message}");
                     }
                 });
             });

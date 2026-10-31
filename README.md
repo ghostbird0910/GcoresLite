@@ -1,6 +1,6 @@
 # GcoresLite
 
-一个用 WPF + .NET 8 重写的机核播客桌面收听工具，只有一个窄条那么大。
+一个用 WPF + .NET 10 重写的机核播客桌面收听工具，只有一个窄条那么大。
 无需登录、无需账号、不保存任何密码，打开即听。
 
 > **非官方项目。与机核网（gcores.com）没有任何关系，未获其授权或认可。**  
@@ -18,7 +18,7 @@ GcoresLite 把这件事拆到最小：**本体 5.6MB，启动 1 秒内出列表�
 
 |       | Electron 版 | GcoresLite                  |
 | ----- | ---------- | --------------------------- |
-| 安装体积  | 272 MB     | 5.6 MB（框架依赖）/ 66 MB（单文件免安装） |
+| 安装体积  | 272 MB     | 4.2 MB（框架依赖）/ 69 MB（单文件免安装） |
 | 常驻内存  | 300 MB+    | ~150 MB                     |
 | 启动到可用 | 2~3 秒      | < 1 秒                       |
 
@@ -52,12 +52,12 @@ GcoresLite 把这件事拆到最小：**本体 5.6MB，启动 1 秒内出列表�
 ## 系统要求
 
 - Windows 10 / 11，x64
-- **框架依赖版**：需要 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
+- **框架依赖版**：需要 [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
 - **单文件版**：不需要任何运行时，双击即用
 
 ## 自己构建
 
-需要 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)。
+需要 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。
 
 ```bash
 git clone https://github.com/ghostbird0910/GcoresLite.git
@@ -70,11 +70,11 @@ dotnet run --project src/GcoresLite
 发布产物：
 
 ```bash
-# 框架依赖（体积小，需要目标机器装 .NET 8 Desktop Runtime）
+# 框架依赖（体积小，需要目标机器装 .NET 10 Desktop Runtime）
 dotnet publish src/GcoresLite/GcoresLite.csproj -c Release -r win-x64 \
   --self-contained false -o publish
 
-# 单文件免安装（把运行时一起打包，约 66 MB）
+# 单文件免安装（把运行时一起打包，约 69 MB）
 dotnet publish src/GcoresLite/GcoresLite.csproj -c Release -r win-x64 \
   --self-contained true \
   -p:PublishSingleFile=true \
@@ -131,7 +131,7 @@ GcoresLite.exe --appico <源图> <输出.ico>
 
 ## 技术栈
 
-- .NET 8 / WPF，MVVM（CommunityToolkit.Mvvm）
+- .NET 10 / WPF，MVVM（CommunityToolkit.Mvvm）
 - NAudio + 系统 Media Foundation 播放
 - SQLite（Microsoft.Data.Sqlite）存播单与进度
 - H.NotifyIcon.Wpf 托盘
