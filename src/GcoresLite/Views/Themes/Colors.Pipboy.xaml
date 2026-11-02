@@ -1,0 +1,38 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Pip-Boy 方案一：经典荧光。纯黑底 + #18F858，最还原辐射终端 -->
+    <Color x:Key="PrimaryColor">#18F858</Color>
+    <Color x:Key="PrimaryDarkColor">#12C446</Color>
+
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{StaticResource PrimaryDarkColor}" />
+    <SolidColorBrush x:Key="PrimarySoftBrush" Color="#0A2A14" />
+    <SolidColorBrush x:Key="PrimaryTintBrush" Color="#08200F" />
+
+    <SolidColorBrush x:Key="BgBrush" Color="#000000" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#0A140A" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#133D22" />
+    <SolidColorBrush x:Key="DividerBrush" Color="#0D2A16" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#3DFF7A" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#2BBF5A" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#1E8A40" />
+    <SolidColorBrush x:Key="TextInverseBrush" Color="#00150A" />
+
+    <SolidColorBrush x:Key="HoverBrush" Color="#0F2416" />
+    <SolidColorBrush x:Key="PressedBrush" Color="#143020" />
+
+    <SolidColorBrush x:Key="BadgeBgBrush" Color="#0A2A14" />
+    <SolidColorBrush x:Key="BadgeFgBrush" Color="#18F858" />
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#1B4D2C" />
+    <SolidColorBrush x:Key="TrackBrush" Color="#0F2A18" />
+    <SolidColorBrush x:Key="OverlayMaskBrush" Color="#B3000000" />
+    <SolidColorBrush x:Key="TileBorderBrush" Color="#3318F858" />
+
+    <!-- CRT 荧光辉光：只给强调元素用 -->
+    <DropShadowEffect x:Key="AccentGlow" Color="#18F858" BlurRadius="12" ShadowDepth="0" Opacity="0.65" />
+
+    <FontFamily x:Key="UiFont">Microsoft YaHei UI</FontFamily>
+
+</ResourceDictionary>

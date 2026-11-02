@@ -31,6 +31,9 @@
     <SolidColorBrush x:Key="OverlayMaskBrush" Color="#66000000" />
     <SolidColorBrush x:Key="TileBorderBrush" Color="#33FFFFFF" />
 
+    <!-- 辉光只在 Pip-Boy 主题里启效，其余主题置空 -->
+    <x:Null x:Key="AccentGlow" />
+
     <FontFamily x:Key="UiFont">Microsoft YaHei UI</FontFamily>
 
 </ResourceDictionary>

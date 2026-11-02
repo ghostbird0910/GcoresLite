@@ -26,9 +26,19 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _hasMore = true;
     private int _hiddenCount;
 
-    private int _albumOffset;
-    private bool _albumHasMore = true;
-    private int _albumHiddenCount;
+    /// <summary>播单分页状态，按来源分开维护（机核 211 / 入驻 42）。</summary>
+    private sealed class AlbumPaging
+    {
+        public int Offset;
+        public bool HasMore = true;
+        public int Hidden;
+    }
+
+    private readonly Dictionary<string, AlbumPaging> _albumPaging = new()
+    {
+        ["gcores"] = new(),
+        ["join"] = new()
+    };
 
     private int _albumRadioOffset;
     private bool _albumRadioHasMore = true;
@@ -52,7 +62,7 @@ public sealed partial class MainViewModel : ObservableObject
         _settings = settings;
 
         // 以 ThemeService 的实际状态为准（App 在构造 VM 之前已经 Apply 过主题）
-        _isDarkTheme = theme.IsDark;
+        _themeMode = theme.Current;
     }
 
     public PlaybackService Playback { get; }
@@ -60,8 +70,22 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ObservableCollection<RadioItemViewModel> Items { get; } = new();
     public ObservableCollection<RadioItemViewModel> PlaylistItems { get; } = new();
-    public ObservableCollection<AlbumItemViewModel> Albums { get; } = new();
     public ObservableCollection<RadioItemViewModel> AlbumRadios { get; } = new();
+
+    /// <summary>机核官方播单（owner-type=gcores，211 个）。</summary>
+    public ObservableCollection<AlbumItemViewModel> GcoresAlbums { get; } = new();
+
+    /// <summary>入驻播客的播单（owner-type=join_podcast，42 个）。</summary>
+    public ObservableCollection<AlbumItemViewModel> JoinAlbums { get; } = new();
+
+    /// <summary>当前显示哪个来源的播单：gcores / join。</summary>
+    [ObservableProperty] private string _albumSource = "gcores";
+
+    /// <summary>播单列表绑定源，随 AlbumSource 切换。</summary>
+    public ObservableCollection<AlbumItemViewModel> Albums =>
+        AlbumSource == "join" ? JoinAlbums : GcoresAlbums;
+
+    partial void OnAlbumSourceChanged(string value) => OnPropertyChanged(nameof(Albums));
 
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _statusText = string.Empty;
@@ -89,18 +113,31 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnPendingAlbumBatchChanged(List<RadioSummary>? value) =>
         OnPropertyChanged(nameof(PickerSubtitle));
     [ObservableProperty] private string _newPlaylistName = string.Empty;
-    [ObservableProperty] private bool _isDarkTheme;
+    [ObservableProperty] private string _themeMode = "light";
+
+    /// <summary>标题栏主题按钮的图标：显示当前状态。</summary>
+    public string ThemeIcon => ThemeMode switch
+    {
+        "dark" => "☾",
+        "pipboy" => "☢",
+        _ => "☀"
+    };
+
+    partial void OnThemeModeChanged(string value) => OnPropertyChanged(nameof(ThemeIcon));
 
     [RelayCommand]
     private void ToggleTheme()
     {
-        IsDarkTheme = !IsDarkTheme;
-        _theme.Apply(IsDarkTheme);
+        var next = ThemeService.NextOf(ThemeMode);
 
-        _settings.Current.DarkTheme = IsDarkTheme;
+        ThemeMode = next;
+        _theme.Apply(next);
+
+        _settings.Current.ThemeMode = next;
+        _settings.Current.DarkTheme = next != ThemeService.Light;
         _settings.Save();
 
-        _log.Info($"theme -> {(IsDarkTheme ? "dark" : "light")}");
+        _log.Info($"theme -> {next}");
     }
 
     public bool ShowRadioList => ViewMode == "list";
@@ -155,14 +192,7 @@ public sealed partial class MainViewModel : ObservableObject
                 return;
 
             case "albums":
-                ViewMode = "albums";
-                Playback.IsRadioMode = false;
-                Albums.Clear();
-                _albumOffset = 0;
-                _albumHasMore = true;
-                _albumHiddenCount = 0;
-                StatusText = string.Empty;
-                await LoadMoreAlbumsAsync().ConfigureAwait(true);
+                await ShowAlbumSourceAsync("gcores").ConfigureAwait(true);
                 return;
         }
 
@@ -278,21 +308,27 @@ public sealed partial class MainViewModel : ObservableObject
         await Playlists.RefreshAsync().ConfigureAwait(true);
     }
 
+    /// <summary>切到指定来源的播单列表：gcores（机核）/ join（入驻）。</summary>
     [RelayCommand]
-    private async Task ShowGcoresAlbumsAsync()
+    private async Task ShowAlbumSourceAsync(string? source)
     {
-        if (ViewMode == "albums") return;
+        if (source is null) return;
 
         ActiveTab = "playlists";
         ViewMode = "albums";
         Playback.IsRadioMode = false;
 
-        // 已经拉过就复用，不用每次重来
-        if (Albums.Count > 0) return;
+        if (AlbumSource != source) AlbumSource = source;
 
-        _albumOffset = 0;
-        _albumHasMore = true;
-        _albumHiddenCount = 0;
+        // 已经有缓存就直接显示，不重新拉一遍
+        var target = Albums;
+        if (target.Count > 0)
+        {
+            StatusText = $"共 {target.Count} 个播单";
+            return;
+        }
+
+        _albumPaging[source] = new AlbumPaging();
         StatusText = string.Empty;
 
         await LoadMoreAlbumsAsync().ConfigureAwait(true);
@@ -301,7 +337,13 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadMoreAlbumsAsync()
     {
-        if (IsLoading || !_albumHasMore || ViewMode != "albums") return;
+        if (IsLoading || ViewMode != "albums") return;
+
+        var paging = _albumPaging[AlbumSource];
+        if (!paging.HasMore) return;
+
+        var ownerType = AlbumSource == "join" ? "join_podcast" : "gcores";
+        var target = Albums;
 
         IsLoading = true;
         StatusText = "加载中…";
@@ -313,37 +355,37 @@ public sealed partial class MainViewModel : ObservableObject
             // 付费有声书是成片出现的，某一页可能全是它们，需要连续补页
             for (var attempt = 0; attempt < 3 && !addedAny; attempt++)
             {
-                if (attempt > 0 && !_albumHasMore) break;
+                if (attempt > 0 && !paging.HasMore) break;
 
-                var page = await _api.GetAlbumsAsync(_albumOffset, PageSize).ConfigureAwait(true);
-                _albumOffset += PageSize;
+                var page = await _api.GetAlbumsAsync(paging.Offset, PageSize, ownerType).ConfigureAwait(true);
+                paging.Offset += PageSize;
 
-                _albumHasMore = page.Items.Count >= PageSize && (page.Total <= 0 || _albumOffset < page.Total);
+                paging.HasMore = page.Items.Count >= PageSize && (page.Total <= 0 || paging.Offset < page.Total);
 
                 foreach (var album in page.Items.Where(a => a.IsPlayable))
                 {
                     var vm = new AlbumItemViewModel(album, _images);
-                    Albums.Add(vm);
+                    target.Add(vm);
                     _ = vm.LoadCoverAsync();
                     addedAny = true;
                 }
 
-                _albumHiddenCount += page.Items.Count(a => !a.IsPlayable);
+                paging.Hidden += page.Items.Count(a => !a.IsPlayable);
             }
 
-            var hidden = _albumHiddenCount > 0 ? $"，已隐藏 {_albumHiddenCount} 个付费播单" : string.Empty;
+            var hidden = paging.Hidden > 0 ? $"，已隐藏 {paging.Hidden} 个付费播单" : string.Empty;
 
-            StatusText = _albumHasMore
-                ? $"已加载 {Albums.Count} 个播单{hidden}"
-                : Albums.Count == 0 ? "这里暂时没有可播放的播单" : $"共 {Albums.Count} 个播单{hidden}";
+            StatusText = paging.HasMore
+                ? $"已加载 {target.Count} 个播单{hidden}"
+                : target.Count == 0 ? "这里暂时没有可播放的播单" : $"共 {target.Count} 个播单{hidden}";
 
-            _log.Info($"albums loaded count={Albums.Count} hidden={_albumHiddenCount} hasMore={_albumHasMore}");
+            _log.Info($"albums source={AlbumSource} count={target.Count} hidden={paging.Hidden} hasMore={paging.HasMore}");
         }
         catch (Exception ex)
         {
-            _log.Error("加载播单列表失败", ex);
+            _log.Error($"加载播单列表失败（{AlbumSource}）", ex);
             StatusText = "加载失败，检查网络后重试";
-            _albumHasMore = true;
+            paging.HasMore = true;
         }
         finally
         {

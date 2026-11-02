@@ -85,9 +85,16 @@ public partial class App : Application
 
         var theme = services.GetRequiredService<ThemeService>();
 
-        // 自检：--darktest 只影响本次运行，不改用户设置
-        var forceDark = e.Args.Any(a => a.Equals("--darktest", StringComparison.OrdinalIgnoreCase));
-        theme.Apply(forceDark || settings.Current.DarkTheme);
+        // 自检参数只影响本次运行，不改用户设置
+        var initialMode = settings.Current.ThemeMode;
+
+        if (e.Args.Any(a => a.Equals("--darktest", StringComparison.OrdinalIgnoreCase)))
+            initialMode = ThemeService.Dark;
+
+        var pipIndex = Array.FindIndex(e.Args, a => a.Equals("--pipboytest", StringComparison.OrdinalIgnoreCase));
+        if (pipIndex >= 0) initialMode = ThemeService.Pipboy;
+
+        theme.Apply(initialMode);
 
         var window = new MainWindow { DataContext = services.GetRequiredService<MainViewModel>() };
         MainWindow = window;
@@ -95,6 +102,67 @@ public partial class App : Application
 
         _windowModes = services.GetRequiredService<WindowModeService>();
         _windowModes.Initialize(window);
+
+        // 自检：--pipshot 用 Pip-Boy 主题截一张图
+        if (e.Args.Any(a => a.Equals("--pipshot", StringComparison.OrdinalIgnoreCase)))
+        {
+            var vmShots = services.GetRequiredService<MainViewModel>();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2600).ConfigureAwait(false);
+
+                await Dispatcher.InvokeAsync(() => { _ = vmShots.LoadMoreAsync(); });
+                await Task.Delay(4200).ConfigureAwait(false);
+
+                await Dispatcher.InvokeAsync(() => theme.Apply(ThemeService.Pipboy));
+                await Task.Delay(900).ConfigureAwait(false);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        RenderShowcase(window, Path.Combine(AppPaths.Root, "pipboy.png"), dark: true);
+                        log.Info("pipshot 完成");
+                    }
+                    catch (Exception ex)
+                    {
+                        log.Warn($"pipshot 失败：{ex.Message}");
+                    }
+                });
+            });
+        }
+
+        // 自检：--albumtabtest 依次切「机核播单」「入驻播单」，各截一张（Pip-Boy 主题）
+        if (e.Args.Any(a => a.Equals("--albumtabtest", StringComparison.OrdinalIgnoreCase)))
+        {
+            var vmTab = services.GetRequiredService<MainViewModel>();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2400).ConfigureAwait(false);
+
+                foreach (var source in new[] { "gcores", "join" })
+                {
+                    await Dispatcher.InvokeAsync(() => vmTab.ShowAlbumSourceCommand.Execute(source));
+                    await Task.Delay(4000).ConfigureAwait(false);
+
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            var file = Path.Combine(AppPaths.Root, $"album-tab-{source}.png");
+                            RenderShowcase(window, file, dark: true);
+                            log.Info($"albumtab {source}: 共 {vmTab.Albums.Count} 个播单 / {vmTab.StatusText}");
+                        }
+                        catch (Exception ex)
+                        {
+                            log.Warn($"albumtab {source} 截图失败：{ex.Message}");
+                        }
+                    });
+                }
+            });
+        }
 
         // 开发自检：--playtest 自动播放第一条，用于验证播放内核（正常启动不带此参数）
         if (e.Args.Any(a => a.Equals("--playtest", StringComparison.OrdinalIgnoreCase)))
@@ -353,7 +421,7 @@ public partial class App : Application
 
                 if (targetId is null)
                 {
-                    await Dispatcher.InvokeAsync(() => vmA.ShowGcoresAlbumsCommand.Execute(null));
+                    await Dispatcher.InvokeAsync(() => vmA.ShowAlbumSourceCommand.Execute("gcores"));
                     await Task.Delay(3500).ConfigureAwait(false);
 
                     await Dispatcher.InvokeAsync(() =>
@@ -427,7 +495,7 @@ public partial class App : Application
             {
                 await Task.Delay(2500).ConfigureAwait(false);
 
-                await Dispatcher.InvokeAsync(() => vmB.ShowGcoresAlbumsCommand.Execute(null));
+                await Dispatcher.InvokeAsync(() => vmB.ShowAlbumSourceCommand.Execute("gcores"));
                 await Task.Delay(3500).ConfigureAwait(false);
 
                 await Dispatcher.InvokeAsync(() =>
@@ -499,7 +567,7 @@ public partial class App : Application
     /// 把窗口渲染到一张带背景与圆角的画布上。
     /// 因为 RenderTargetBitmap 不包含 DWM 的窗口圆角，这里自己裁一次，得到和实际观感一致的图。
     /// </summary>
-    private static void RenderShowcase(Window window, string path)
+    private static void RenderShowcase(Window window, string path, bool dark = false)
     {
         window.UpdateLayout();
 
@@ -521,20 +589,29 @@ public partial class App : Application
 
         using (var dc = visual.RenderOpen())
         {
-            var background = new System.Windows.Media.LinearGradientBrush(
-                System.Windows.Media.Color.FromRgb(0xF7, 0xF3, 0xEF),
-                System.Windows.Media.Color.FromRgb(0xEA, 0xE4, 0xDD),
-                90);
+            var background = dark
+                ? new System.Windows.Media.LinearGradientBrush(
+                    System.Windows.Media.Color.FromRgb(0x0C, 0x12, 0x0D),
+                    System.Windows.Media.Color.FromRgb(0x05, 0x08, 0x06),
+                    90)
+                : new System.Windows.Media.LinearGradientBrush(
+                    System.Windows.Media.Color.FromRgb(0xF7, 0xF3, 0xEF),
+                    System.Windows.Media.Color.FromRgb(0xEA, 0xE4, 0xDD),
+                    90);
             dc.DrawRectangle(background, null, new Rect(0, 0, totalWidth, totalHeight));
 
-            // 柔和的落地感：几层递减透明度的偏移圆角矩形
+            // 柔和的落地感：几层递减透明度的偏移圆角矩形（深色底上改用荧光绿微光）
             for (var i = 4; i >= 1; i--)
             {
                 var offset = 2 + i * 3;
-                var alpha = 0.035;
+                var alpha = dark ? 0.02 : 0.035;
+
+                var tint = dark
+                    ? System.Windows.Media.Color.FromArgb((byte)(alpha * 255), 0x3D, 0xFF, 0x7A)
+                    : System.Windows.Media.Color.FromArgb((byte)(alpha * 255), 0x3A, 0x2A, 0x1E);
+
                 dc.DrawRoundedRectangle(
-                    new System.Windows.Media.SolidColorBrush(
-                        System.Windows.Media.Color.FromArgb((byte)(alpha * 255), 0x3A, 0x2A, 0x1E)),
+                    new System.Windows.Media.SolidColorBrush(tint),
                     null,
                     new Rect(pad - offset / 2.0, pad + offset, width + offset, height + offset),
                     radius + offset / 2.0, radius + offset / 2.0);

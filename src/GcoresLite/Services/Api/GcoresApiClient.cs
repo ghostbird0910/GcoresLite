@@ -77,9 +77,9 @@ public sealed class GcoresApiClient
         return FetchListAsync(ApiEndpoints.AlbumRadios(albumId), query, offset, ct);
     }
 
-    /// <summary>播单列表，按最近更新排序。</summary>
+    /// <summary>播单列表，按最近更新排序。ownerType: gcores / join_podcast，null 表示不过滤。</summary>
     public async Task<PagedResult<AlbumSummary>> GetAlbumsAsync(
-        int offset, int limit = 20, CancellationToken ct = default)
+        int offset, int limit = 20, string? ownerType = null, CancellationToken ct = default)
     {
         var query = new List<KeyValuePair<string, string?>>
         {
@@ -88,6 +88,9 @@ public sealed class GcoresApiClient
             new("sort", "-updated-at"),
             new("fields[albums]", ApiEndpoints.FieldsAlbumsList)
         };
+
+        if (!string.IsNullOrEmpty(ownerType))
+            query.Add(new("filter[owner-type]", ownerType));
 
         var url = ApiEndpoints.PathAlbums + "?" + GcoresHttp.BuildQuery(query);
 

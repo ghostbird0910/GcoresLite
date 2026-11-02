@@ -286,6 +286,8 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="BorderThickness" Value="0" />
+            <!-- 只有 Pip-Boy 主题会给出真正的辉光，其余主题是 null，不影响性能 -->
+            <Setter Property="Effect" Value="{DynamicResource AccentGlow}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -466,19 +468,19 @@
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Margin="0,0,8,0">
-                    <!-- 深浅色：浅色时显示月亮（点了变深色），深色时显示太阳 -->
+                    <!-- 主题：浅色 ☀ / 深色 ☾ / Pip-Boy ☢，点一下循环 -->
                     <Button Style="{StaticResource TitleIconButton}"
-                            Command="{Binding ToggleThemeCommand}" ToolTip="切换深浅色">
+                            Command="{Binding ToggleThemeCommand}" ToolTip="切换主题（浅色 / 深色 / Pip-Boy）">
                         <Grid Width="13" Height="13">
                             <Path Data="M 21,12.8 A 9,9 0 1,1 11.2,3 A 7,7 0 0,0 21,12.8 Z"
                                   Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.7"
                                   StrokeLineJoin="Round" Stretch="Uniform">
                                 <Path.Style>
                                     <Style TargetType="Path">
-                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="True">
-                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            <DataTrigger Binding="{Binding ThemeMode}" Value="dark">
+                                                <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -492,13 +494,26 @@
                                     <Style TargetType="Path">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="True">
+                                            <DataTrigger Binding="{Binding ThemeMode}" Value="light">
                                                 <Setter Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Path.Style>
                             </Path>
+                            <TextBlock Text="☢" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ThemeMode}" Value="pipboy">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Grid>
                     </Button>
                     <Button Style="{StaticResource TitleIconButton}" Content="▭" FontSize="11"
@@ -629,16 +644,40 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <Button Content="机核播单" Command="{Binding ShowGcoresAlbumsCommand}" Margin="6,0,0,0">
+                        <Button Content="机核播单" Command="{Binding ShowAlbumSourceCommand}"
+                                CommandParameter="gcores" Margin="6,0,0,0">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
                                     <Setter Property="Background" Value="Transparent" />
                                     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ShowAlbumList}" Value="True">
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding ShowAlbumList}" Value="True" />
+                                                <Condition Binding="{Binding AlbumSource}" Value="gcores" />
+                                            </MultiDataTrigger.Conditions>
                                             <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
                                             <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
-                                        </DataTrigger>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="入驻播单" Command="{Binding ShowAlbumSourceCommand}"
+                                CommandParameter="join" Margin="6,0,0,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding ShowAlbumList}" Value="True" />
+                                                <Condition Binding="{Binding AlbumSource}" Value="join" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                            <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
@@ -719,16 +758,40 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <Button Content="机核播单" Margin="6,0,0,0">
+                        <Button Content="机核播单" Command="{Binding ShowAlbumSourceCommand}"
+                                CommandParameter="gcores" Margin="6,0,0,0">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
                                     <Setter Property="Background" Value="Transparent" />
                                     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ShowAlbumList}" Value="True">
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding ShowAlbumList}" Value="True" />
+                                                <Condition Binding="{Binding AlbumSource}" Value="gcores" />
+                                            </MultiDataTrigger.Conditions>
                                             <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
                                             <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
-                                        </DataTrigger>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="入驻播单" Command="{Binding ShowAlbumSourceCommand}"
+                                CommandParameter="join" Margin="6,0,0,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding ShowAlbumList}" Value="True" />
+                                                <Condition Binding="{Binding AlbumSource}" Value="join" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                            <Setter Property="Background" Value="{DynamicResource PrimaryTintBrush}" />
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
