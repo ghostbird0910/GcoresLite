@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -67,10 +68,44 @@ public partial class MainWindow : Window
             vm.LoadMoreCommand.Execute(null);
     }
 
+    /// <summary>
+    /// 右键按下的标记。ListBox 右键也会把项选中，而播放/打开是挂在 SelectionChanged 上的，
+    /// 不拦一下就会出现"右键弹出菜单的同时节目也开播了"。
+    /// </summary>
+    private bool _rightClickGuard;
+
+    protected override void OnPreviewMouseRightButtonDown(MouseButtonEventArgs e)
+    {
+        _rightClickGuard = true;
+
+        // 用 Background 优先级解除，保证排在本次输入引发的 SelectionChanged 之后
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => _rightClickGuard = false));
+
+        base.OnPreviewMouseRightButtonDown(e);
+    }
+
+    /// <summary>
+    /// 右键引起的选中要撤销：既不该播放，也不该留高亮。
+    /// 留着高亮的话，用户接着左键点这一项时不会再有 SelectionChanged，点了没反应。
+    /// </summary>
+    private bool ShouldSkipForRightClick(ListBox list)
+    {
+        if (!_rightClickGuard) return false;
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            if (list.SelectedItem is not null) list.SelectedItem = null;
+        }));
+
+        return true;
+    }
+
     private void RadioList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
-        if (RadioList.SelectedItem is not RadioItemViewModel item) return;
+        if (sender is not ListBox list) return;
+        if (ShouldSkipForRightClick(list)) return;
+        if (list.SelectedItem is not RadioItemViewModel item) return;
 
         if (vm.PlayItemCommand.CanExecute(item))
             vm.PlayItemCommand.Execute(item);
@@ -79,7 +114,9 @@ public partial class MainWindow : Window
     private void PlaylistItems_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
-        if (sender is not ListBox list || list.SelectedItem is not RadioItemViewModel item) return;
+        if (sender is not ListBox list) return;
+        if (ShouldSkipForRightClick(list)) return;
+        if (list.SelectedItem is not RadioItemViewModel item) return;
 
         if (vm.PlayItemCommand.CanExecute(item))
             vm.PlayItemCommand.Execute(item);
@@ -89,6 +126,7 @@ public partial class MainWindow : Window
     {
         if (DataContext is not MainViewModel vm) return;
         if (sender is not ListBox list) return;
+        if (ShouldSkipForRightClick(list)) return;
         if (e.AddedItems.Count == 0) return;
         if (list.SelectedItem is not Models.Playlist playlist) return;
 
@@ -102,6 +140,7 @@ public partial class MainWindow : Window
     {
         if (DataContext is not MainViewModel vm) return;
         if (sender is not ListBox list) return;
+        if (ShouldSkipForRightClick(list)) return;
         if (e.AddedItems.Count == 0) return;
         if (list.SelectedItem is not AlbumItemViewModel album) return;
 
@@ -113,6 +152,7 @@ public partial class MainWindow : Window
     {
         if (DataContext is not MainViewModel vm) return;
         if (sender is not ListBox list) return;
+        if (ShouldSkipForRightClick(list)) return;
         if (e.AddedItems.Count == 0) return;
         if (list.SelectedItem is not RadioItemViewModel item) return;
 

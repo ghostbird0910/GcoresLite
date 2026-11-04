@@ -164,6 +164,90 @@ public partial class App : Application
             });
         }
 
+        // 自检：--scrolltest 触发一次滚轮并采样偏移，验证是逐帧逼近而不是一次跳到位
+        if (e.Args.Any(a => a.Equals("--scrolltest", StringComparison.OrdinalIgnoreCase)))
+        {
+            var vmScroll = services.GetRequiredService<MainViewModel>();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2600).ConfigureAwait(false);
+                await Dispatcher.InvokeAsync(() => { _ = vmScroll.LoadMoreAsync(); });
+                await Task.Delay(3600).ConfigureAwait(false);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (window.FindName("RadioList") is not System.Windows.Controls.ListBox list)
+                    {
+                        log.Warn("scrolltest 找不到 RadioList");
+                        return;
+                    }
+
+                    var viewer = Infrastructure.SmoothScroll.FindScrollViewer(list);
+                    log.Info($"scrolltest 起点 offset={viewer?.VerticalOffset:F1} 可滚动={viewer?.ScrollableHeight:F1}");
+
+                    // 模拟向下滚 3 格
+                    var args = new System.Windows.Input.MouseWheelEventArgs(
+                        System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, -360)
+                    {
+                        RoutedEvent = System.Windows.UIElement.PreviewMouseWheelEvent
+                    };
+                    list.RaiseEvent(args);
+                });
+
+                for (var i = 0; i < 16; i++)
+                {
+                    await Task.Delay(16).ConfigureAwait(false);
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        if (window.FindName("RadioList") is not System.Windows.Controls.ListBox lb) return;
+
+                        var viewer = Infrastructure.SmoothScroll.FindScrollViewer(lb);
+                        log.Info($"scrolltest t={i * 16 + 16}ms offset={viewer?.VerticalOffset:F2}");
+                    });
+                }
+            });
+        }
+
+        // 自检：--rightclicktest 验证右键不会触发播放/导航
+        if (e.Args.Any(a => a.Equals("--rightclicktest", StringComparison.OrdinalIgnoreCase)))
+        {
+            var vmRight = services.GetRequiredService<MainViewModel>();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2600).ConfigureAwait(false);
+                await Dispatcher.InvokeAsync(() => { _ = vmRight.LoadMoreAsync(); });
+                await Task.Delay(3600).ConfigureAwait(false);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (window.FindName("RadioList") is not System.Windows.Controls.ListBox list) return;
+
+                    // 模拟右键按下：窗口级的 guard 会被置位
+                    var rc = new System.Windows.Input.MouseButtonEventArgs(
+                        System.Windows.Input.Mouse.PrimaryDevice,
+                        Environment.TickCount,
+                        System.Windows.Input.MouseButton.Right)
+                    {
+                        RoutedEvent = System.Windows.UIElement.PreviewMouseRightButtonDownEvent
+                    };
+                    window.RaiseEvent(rc);
+
+                    // 右键会顺带改选中，这一步以前会连锁触发播放
+                    list.SelectedIndex = list.Items.Count > 1 ? 1 : 0;
+                });
+
+                await Task.Delay(400).ConfigureAwait(false);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (window.FindName("RadioList") is not System.Windows.Controls.ListBox list) return;
+                    log.Info($"rightclicktest 右键后 SelectedIndex={list.SelectedIndex}（-1 表示已被撤销）");
+                });
+            });
+        }
+
         // 开发自检：--playtest 自动播放第一条，用于验证播放内核（正常启动不带此参数）
         if (e.Args.Any(a => a.Equals("--playtest", StringComparison.OrdinalIgnoreCase)))
         {
